@@ -1,0 +1,3 @@
+#!/bin/bash
+
+/home/angr/.virtualenvs/angr/bin/afl-unix/afl-fuzz "$@"
