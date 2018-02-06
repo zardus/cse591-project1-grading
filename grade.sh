@@ -5,7 +5,7 @@ TIMEOUT=10
 echo "[*] Building your docker container..."
 docker build -t tograde .
 echo "[*] Docker container built."
-
+echo "****************************************************************************************************"
 function test_fuzzer
 {
 	TRACER_NAME=$1
@@ -21,8 +21,19 @@ function test_fuzzer
 
 		rm -rf $testcase/output
 		CONTAINER_ID=$(docker run --privileged --rm -id --name=grader -v $PWD/$testcase:/testcase tograde /fuzz -$TRACER_OPTION -i /testcase/seeds -o /testcase/output /testcase/binary)
+		echo "[-] running container $CONTAINER_ID"
 		timeout $TIMEOUT docker wait $CONTAINER_ID
+		echo "[-] container $CONTAINER_ID completed with return code of $?"
 		docker kill $CONTAINER_ID
+		
+		# check if process is still running, probably status is still removing
+		docker ps -a | grep "grader"
+		while [ $? -eq 0 ]
+		do
+		    echo "[-] Container $CONTAINER_ID is still being removed, sleeping before retesting..."
+		    sleep 10
+		    docker ps -a | grep "grader"
+		done
 
 		echo "[-] Checking for crashes..."
 		CRASHED=0
@@ -50,3 +61,4 @@ function test_fuzzer
 
 test_fuzzer gdb/qemu Q
 test_fuzzer valgrind V
+
